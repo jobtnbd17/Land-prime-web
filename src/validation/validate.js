@@ -1,4 +1,4 @@
-import { object, ref, string } from "yup";
+import { object, ref, string,number } from "yup";
 
 export const registerSchema = object({
   firstName : string().required(),
@@ -19,3 +19,12 @@ export const loginSchema = object({
   password: string().min(6, "password invalid"),
   
 });
+
+
+export const postSchema = object({
+  detail: string().required('กรอกรายละเอียด'),
+  landtype: string().oneOf(['HOME', 'LAND']).required(),
+  area: string().required(),
+  location: string().required(),
+  price: number().required().typeError('ต้องเป็นตัวเลข'),
+})

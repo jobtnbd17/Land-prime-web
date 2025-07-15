@@ -6,6 +6,7 @@ import HomePage from "../pages/HomePage";
 import RegisterPage from "../pages/RegisterPage";
 import CreatePostPage from "../pages/CreatePostPage";
 import MarketPage from "../pages/MarketPage";
+import PropertyDetailPage from "../pages/PropertyDetailPage";
 
 
 function AppRouter() {
@@ -18,6 +19,7 @@ function AppRouter() {
         <Route path="/register" element={<RegisterPage/>}/>
         <Route path="/post" element={<CreatePostPage/>}/>
         <Route path="/market" element={<MarketPage/>}/>
+        <Route path="/property/:id" element={<PropertyDetailPage/>}/>
         </Route>
       </Routes>
     </BrowserRouter>

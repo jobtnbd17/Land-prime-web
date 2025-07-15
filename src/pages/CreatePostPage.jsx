@@ -1,10 +1,14 @@
 import React, { useState } from "react";
-import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
-import "leaflet/dist/leaflet.css";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { MapContainer, Marker, TileLayer, useMapEvents } from "react-leaflet";
 import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import FromInput from "../components/FromInput"; // คุณต้องมี component นี้ หรือใช้ <input> ธรรมดา
+import { postSchema } from "../validation/validate";
 import { createPost } from "../api/authApi";
+import { toast } from "react-toastify";
 
-// ตั้งไอคอน Marker เพื่อแก้ปัญหา icon หายของ Leaflet
 const markerIcon = new L.Icon({
   iconUrl:
     "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
@@ -19,201 +23,184 @@ const markerIcon = new L.Icon({
 });
 
 function LocationMarker({ position, setPosition }) {
-  // ให้คลิกแผนที่เพื่อเลือกตำแหน่ง
   useMapEvents({
     click(e) {
       setPosition(e.latlng);
     },
   });
 
-  return position === null ? null : (
-    <Marker position={position} icon={markerIcon}></Marker>
-  );
+  return position ? <Marker position={position} icon={markerIcon} /> : null;
 }
 
 function CreatePostPage() {
-  const [postType, setPostType] = useState("");
-  const [title, setTitle] = useState("");
-  const [detail, setDetail] = useState("");
-  const [area, setArea] = useState("");
-  const [location, setLocation] = useState("");
-  const [price, setPrice] = useState("");
-  const [image, setImage] = useState([]);
   const [position, setPosition] = useState(null);
+  const [images, setImages] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState();
+
+  const {
+    handleSubmit,
+    register,
+    formState: { errors },
+    reset,
+  } = useForm({
+    resolver: yupResolver(postSchema),
+  });
+
+  const onSubmit = async (data) => {
+    setIsSubmitting(true);
+    const formData = new FormData();
+    formData.append("detail", data.detail);
+    formData.append("landtype", data.landtype);
+    formData.append("area", data.area);
+    formData.append("location", data.location);
+    formData.append("price", data.price);
+    formData.append("lat", position?.lat || "");
+    formData.append("lng", position?.lng || "");
+
+    Array.from(images).map((img) => {
+      formData.append("image", img);
+    });
+    try {
+      const result = await createPost(formData);
+    } catch (error) {
+      console.log(error);
+    }finally {
+      setIsSubmitting(false)
+    }
+
+    console.log("ส่งข้อมูล:", Object.fromEntries(formData));
+    toast.success("Success");
+    reset();
+    setImages([]);
+    setPosition(null);
+  };
 
   const handleImageChange = (e) => {
-    setImage(e.target.files);
+    setImages(e.target.files);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    // คุณสามารถทำอะไรกับข้อมูลได้ เช่น ส่ง API
-    const formData2 = {
-      postType,
-      title,
-      detail,
-      area,
-      location,
-      price,
-      image,
-      lat: position?.lat,
-      lng: position?.lng,
-    };
-    const formData = new FormData()
-    formData.append("landtype", postType);
-    formData.append("area", area);
-    formData.append("location", location);
-    formData.append("price", price);
-    formData.append("lat", position?.lat);
-    formData.append("lng", position?.lng);
-    
-
-     Array.from(image).map((img) =>  formData.append("image", img))
-
-    try {
-      const result = await createPost(formData)
-      console.log("result" ,result)
-    } catch (error) {
-      console.log(error)
-    }
-    console.log("ส่งข้อมูล:")
-    alert("โพสต์เรียบร้อย!");
-  };
-console.log(image)
   return (
-    <div className="min-h-screen bg-[#F3E5AB] flex items-center justify-center p-4">
-      <div className="bg-white shadow-md rounded-lg p-8 w-full max-w-xl border border-gray-200">
-        <h2 className="text-2xl font-bold text-center text-[#5D4037] mb-6">
-          ลงประกาศที่ดิน
-        </h2>
+    <div className="min-h-screen bg-gradient-to-br from-[#F3E5AB] to-[#FFF8E1] flex items-center justify-center px-4 py-10">
+      <div className="bg-white shadow-2xl border border-gray-200 rounded-xl p-8 w-full max-w-2xl space-y-6">
+        <h1 className="text-3xl font-bold text-center text-[#5D4037]">
+          ลงประกาศอสังหา
+        </h1>
 
-        <form className="space-y-4" onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* ประเภท */}
           <div>
-            <label className="block mb-1 text-sm font-medium">ประเภท</label>
+            <label className="block text-sm font-semibold mb-1 text-[#5D4037]">
+              ประเภท
+            </label>
             <select
-              className="w-full px-3 py-2 border rounded"
-              value={postType}
-              onChange={(e) => setPostType(e.target.value)}
-              required
+              {...register("landtype")}
+              className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-yellow-400"
             >
-              <option value="">เลือกประเภท</option>
+              <option value="">-- เลือกประเภท --</option>
               <option value="HOME">HOME</option>
               <option value="LAND">LAND</option>
             </select>
+            <p className="text-red-500 text-sm mt-1">
+              {errors.landtype?.message}
+            </p>
           </div>
 
-          {/* ชื่อประกาศ */}
-          <div>
-            <label className="block mb-1 text-sm font-medium">ชื่อประกาศ</label>
-            <input
-              type="text"
-              className="w-full px-3 py-2 border rounded"
-              placeholder="กรอกชื่อประกาศ"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-            />
-          </div>
+          {/* รายละเอียด, พื้นที่, ที่ตั้ง, ราคา */}
+          <FromInput
+            label="รายละเอียด"
+            name="detail"
+            register={register}
+            errors={errors}
+          />
+          <FromInput
+            label="พื้นที่ ตรม."
+            name="area"
+            register={register}
+            errors={errors}
+          />
+          <FromInput
+            label="ที่ตั้ง"
+            name="location"
+            register={register}
+            errors={errors}
+          />
+          <FromInput
+            label="ราคา"
+            name="price"
+            type="number"
+            register={register}
+            errors={errors}
+          />
 
-          {/* รายละเอียด */}
+          {/* อัปโหลดรูป */}
           <div>
-            <label className="block mb-1 text-sm font-medium">รายละเอียด</label>
-            <textarea
-              rows="4"
-              className="w-full px-3 py-2 border rounded"
-              placeholder="กรอกรายละเอียด"
-              value={detail}
-              onChange={(e) => setDetail(e.target.value)}
-              required
-            ></textarea>
-          </div>
-
-          {/* พื้นที่ (Area) */}
-          <div>
-            <label className="block mb-1 text-sm font-medium">พื้นที่ (ตร.วา / ตร.ม.)</label>
-            <input
-              type="text"
-              className="w-full px-3 py-2 border rounded"
-              placeholder="ระบุพื้นที่"
-              value={area}
-              onChange={(e) => setArea(e.target.value)}
-              required
-            />
-          </div>
-
-          {/* ที่ตั้ง (Location) */}
-          <div>
-            <label className="block mb-1 text-sm font-medium">ที่ตั้ง</label>
-            <input
-              type="text"
-              className="w-full px-3 py-2 border rounded"
-              placeholder="ระบุที่ตั้ง"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              required
-            />
-          </div>
-
-          {/* ราคา */}
-          <div>
-            <label className="block mb-1 text-sm font-medium">ราคา (บาท)</label>
-            <input
-              type="number"
-              className="w-full px-3 py-2 border rounded"
-              placeholder="ระบุราคา"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              required
-            />
-          </div>
-
-          {/* รูปภาพ */}
-          <div>
-            <label className="block mb-1 text-sm font-medium">อัปโหลดรูปภาพ</label>
-            <input type="file" accept="image/*" multiple onChange={handleImageChange} />
-            {image.length > 0 && Array.from(image).map((img,index) => (
-              <div key={index} className="mt-4">
-
-                <img
-                  src={URL.createObjectURL(img)}
-                  alt="preview"
-                  className="w-full max-h-40 object-contain rounded"
-                />
-              </div>
-            ))}
-          </div>
-
-          {/* แผนที่ Leaflet */}
-          <div>
-            <label className="block mb-1 text-sm font-medium">เลือกตำแหน่งบนแผนที่</label>
-            <MapContainer
-              center={[13.736717, 100.523186]} // กรุงเทพฯ เป็นค่าเริ่มต้น
-              zoom={13}
-              scrollWheelZoom={true}
-              style={{ height: "300px", width: "100%" }}
+            <label className="block text-sm font-semibold mb-1 text-[#5D4037]">
+              อัปโหลดรูปภาพ
+            </label>
+            <button
+              type="button"
+              onClick={() => document.getElementById("image-upload").click()}
+              className="px-4 py-2 bg-[#5D4037] text-white rounded hover:bg-[#4E342E] transition"
             >
-              <TileLayer
-                attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a>'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              />
-              <LocationMarker position={position} setPosition={setPosition} />
-            </MapContainer>
+              เลือกรูปภาพ
+            </button>
+            <input
+              type="file"
+              id="image-upload"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={handleImageChange}
+            />
+            <div className="grid grid-cols-2 gap-3 mt-3">
+              {Array.from(images).map((img, i) => (
+                <img
+                  key={i}
+                  src={URL.createObjectURL(img)}
+                  className="w-full h-28 object-cover rounded border"
+                  alt={`upload-preview-${i}`}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* แผนที่ */}
+          <div>
+            <label className="block text-sm font-semibold mb-1 text-[#5D4037]">
+              เลือกตำแหน่งบนแผนที่
+            </label>
+            <div className="rounded border overflow-hidden">
+              <MapContainer
+                center={[13.736717, 100.523186]}
+                zoom={13}
+                style={{ height: "300px", width: "100%" }}
+                className="rounded"
+              >
+                <TileLayer
+                  attribution='&copy; <a href="https://osm.org/copyright">OpenStreetMap</a>'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+                <LocationMarker position={position} setPosition={setPosition} />
+              </MapContainer>
+            </div>
             {position && (
-              <p className="mt-2 text-sm">
-                ตำแหน่งที่เลือก: lat {position.lat.toFixed(5)}, lng{" "}
-                {position.lng.toFixed(5)}
+              <p className="mt-2 text-sm text-gray-600">
+                lat: {position.lat.toFixed(6)}, lng: {position.lng.toFixed(6)}
               </p>
             )}
           </div>
 
-          {/* ปุ่มโพสต์ */}
+          {/* Submit */}
           <button
             type="submit"
-            className="w-full py-2 rounded font-semibold text-white bg-[#5D4037] hover:bg-[#4E342E] transition"
+            disabled={isSubmitting}
+            className={`w-full py-3 rounded-lg font-bold text-lg transition ${
+              isSubmitting
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-green-600 hover:bg-green-700 text-white"
+            }`}
           >
-            โพสต์
+            {isSubmitting ? "กำลังโพสต์..." : "โพสต์ประกาศ"}
           </button>
         </form>
       </div>
