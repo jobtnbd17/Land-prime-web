@@ -1,10 +1,15 @@
 import { useNavigate } from "react-router";
 
 function ProductCard({ image, title, location, area, price,id }) {
+    const navigate = useNavigate()
+
+    function navigateToPropertyPage() {
+      navigate(`/property/${id}`)
+    }
 
   console.log(image)
   return (
-    <div className="flex bg-white shadow-lg rounded-2xl overflow-hidden max-w-xl w-full" >
+    <div className="flex bg-white shadow-lg rounded-2xl overflow-hidden max-w-xl w-full" onClick={navigateToPropertyPage}>
       {/* รูปภาพ */}
       <img src={image.image_url} className="w-40 h-40 object-cover" />
 
@@ -18,7 +23,7 @@ function ProductCard({ image, title, location, area, price,id }) {
           </p>
           <p>
             {" "}
-            <span className="font-medium">{area}</span>
+            <span className="font-medium">{area} ตร.ม</span>
           </p>
           <p>
             <span className="font-bold text-green-600">{price}  บาท</span>

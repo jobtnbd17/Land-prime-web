@@ -18,7 +18,7 @@ export const actionLogin = async (value) => {
   return res
 }
 export const createPost = async (value) => {
-  const res = await axios.post('http://localhost:8787/user/post',value)
+  const res = await axios.post('http://localhost:8787/user/post',value,)
   return res
 }
 
